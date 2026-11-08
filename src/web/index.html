@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>NES 模拟器 · 主板与整机（第三部）</title>
+    <style>
+      :root {
+        --bg: #14161a;
+        --panel: #1d2026;
+        --panel2: #24282f;
+        --text: #d7dae0;
+        --dim: #8b919c;
+        --accent: #4da3ff;
+        --ok: #58c470;
+        --warn: #e0b34d;
+        --err: #e06c5d;
+        --mono: 'Cascadia Mono', Consolas, 'Courier New', monospace;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: system-ui, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        display: flex;
+        justify-content: center;
+      }
+      #app {
+        display: flex;
+        gap: 16px;
+        padding: 16px;
+        max-width: 1100px;
+        width: 100%;
+        align-items: flex-start;
+        flex-wrap: wrap;
+      }
+      #left { flex: 0 0 auto; }
+      #right {
+        flex: 1 1 300px;
+        min-width: 300px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .panel {
+        background: var(--panel);
+        border: 1px solid #2c313a;
+        border-radius: 8px;
+        padding: 10px 12px;
+      }
+      .panel h2 {
+        margin: 0 0 8px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--dim);
+        letter-spacing: 0.08em;
+      }
+      #screenWrap {
+        background: #000;
+        border: 1px solid #2c313a;
+        border-radius: 8px;
+        padding: 8px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+      }
+      canvas#screen {
+        image-rendering: pixelated;
+        image-rendering: crisp-edges;
+        background: #000;
+        outline: none;
+      }
+      #dropHint {
+        border: 2px dashed #3a4150;
+        border-radius: 6px;
+        padding: 10px 18px;
+        color: var(--dim);
+        font-size: 13px;
+        text-align: center;
+        width: 100%;
+      }
+      #dropHint.drag { border-color: var(--accent); color: var(--accent); }
+      button {
+        background: var(--panel2);
+        color: var(--text);
+        border: 1px solid #343a45;
+        border-radius: 6px;
+        padding: 5px 12px;
+        font-size: 13px;
+        cursor: pointer;
+      }
+      button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+      button:disabled { opacity: 0.4; cursor: default; }
+      button.primary { background: #1d3a5f; border-color: #2d5f9e; }
+      #controls { display: flex; gap: 6px; flex-wrap: wrap; }
+      #status {
+        font-size: 12px;
+        color: var(--dim);
+        font-family: var(--mono);
+        min-height: 1.2em;
+      }
+      #status.ok { color: var(--ok); }
+      #status.err { color: var(--err); }
+      .debug-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 4px 10px;
+        font-family: var(--mono);
+        font-size: 12px;
+      }
+      .debug-grid .k { color: var(--dim); }
+      .debug-grid .v { color: var(--text); text-align: right; }
+      .debug-grid .v.hot { color: var(--accent); }
+      #flags { font-family: var(--mono); font-size: 12px; color: var(--dim); margin-top: 6px; }
+      #flags b { color: var(--text); font-weight: 600; }
+      #stack {
+        font-family: var(--mono);
+        font-size: 12px;
+        line-height: 1.5;
+        white-space: pre;
+        color: var(--text);
+      }
+      #keys { font-size: 12px; color: var(--dim); line-height: 1.8; }
+      #keys kbd {
+        background: var(--panel2);
+        border: 1px solid #3a4150;
+        border-bottom-width: 2px;
+        border-radius: 4px;
+        padding: 0 6px;
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--text);
+      }
+      .row { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+      .row label { color: var(--dim); }
+      select, input[type='file'] { color: var(--text); font-size: 12px; }
+      #fps { font-family: var(--mono); font-size: 13px; color: var(--ok); }
+      .muted-note { font-size: 11px; color: var(--dim); }
+      a { color: var(--accent); }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <div id="left">
+        <div id="screenWrap">
+          <canvas id="screen" width="256" height="240" tabindex="0"></canvas>
+          <div id="dropHint">拖拽 .nes 文件到此处，或点击「打开 ROM」</div>
+        </div>
+        <div class="panel" style="margin-top: 8px">
+          <div id="controls">
+            <button id="btnOpen" class="primary">打开 ROM</button>
+            <button id="btnPause" disabled>暂停</button>
+            <button id="btnReset" disabled>复位</button>
+            <button id="btnStep" disabled>单步指令</button>
+            <button id="btnFrame" disabled>单帧</button>
+            <input id="fileInput" type="file" accept=".nes" style="display: none" />
+            <span id="fps"></span>
+          </div>
+          <div id="status" style="margin-top: 8px"></div>
+        </div>
+      </div>
+      <div id="right">
+        <div class="panel">
+          <h2>CPU（调试面板）</h2>
+          <div class="debug-grid">
+            <span class="k">PC</span><span class="v" id="dPc">----</span>
+            <span class="k">A</span><span class="v" id="dA">--</span>
+            <span class="k">X</span><span class="v" id="dX">--</span>
+            <span class="k">Y</span><span class="v" id="dY">--</span>
+            <span class="k">SP</span><span class="v" id="dSp">--</span>
+            <span class="k">P</span><span class="v" id="dP">--</span>
+            <span class="k">CYC</span><span class="v" id="dCyc">-</span>
+            <span class="k">帧</span><span class="v" id="dFrame">-</span>
+            <span class="k">扫描行</span><span class="v" id="dLine">-</span>
+            <span class="k">Dot</span><span class="v" id="dDot">-</span>
+            <span class="k">VBlank</span><span class="v" id="dVbl">-</span>
+            <span class="k">NMI</span><span class="v" id="dNmi">-</span>
+          </div>
+          <div id="flags"></div>
+        </div>
+        <div class="panel">
+          <h2>栈（$0100-$01FF 顶部）</h2>
+          <div id="stack">（未加载）</div>
+        </div>
+        <div class="panel">
+          <h2>卡带</h2>
+          <div class="debug-grid">
+            <span class="k">Mapper</span><span class="v" id="cMapper">-</span>
+            <span class="k">PRG</span><span class="v" id="cPrg">-</span>
+            <span class="k">CHR</span><span class="v" id="cChr">-</span>
+            <span class="k">镜像</span><span class="v" id="cMirror">-</span>
+            <span class="k">电池</span><span class="v" id="cBattery">-</span>
+            <span class="k">PRG-RAM</span><span class="v" id="cSram">-</span>
+          </div>
+          <div class="row" style="margin-top: 8px">
+            <button id="btnSaveSram" disabled>导出存档</button>
+            <button id="btnWipeSram" disabled>清除本机存档</button>
+            <span class="muted-note">电池存档自动保存到 localStorage</span>
+          </div>
+        </div>
+        <div class="panel">
+          <h2>输入 / 音频</h2>
+          <div id="keys">
+            <kbd>←→↑↓</kbd> 方向　<kbd>Z</kbd> = A　<kbd>X</kbd> = B<br />
+            <kbd>Enter</kbd> = Start　<kbd>Shift</kbd> = Select<br />
+            <kbd>P</kbd> 暂停　<kbd>F</kbd> 单帧　<kbd>R</kbd> 复位
+          </div>
+          <div class="row" style="margin-top: 8px">
+            <input type="checkbox" id="muteToggle" disabled />
+            <label for="muteToggle">静音（音频 APU 二期实现）</label>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

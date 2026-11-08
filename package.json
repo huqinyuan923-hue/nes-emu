@@ -1,0 +1,19 @@
+{
+  "name": "nes-main",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "bench": "vitest run --config vitest.bench.config.ts",
+    "typecheck": "tsc --noEmit",
+    "build:web": "node scripts/build-web.mjs",
+    "fetch:test-roms": "node scripts/fetch-test-roms.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "esbuild": "^0.24.2",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.9"
+  }
+}
