@@ -407,5 +407,5 @@ window.addEventListener('pagehide', () => driver?.stop());
 
 // ---------- 启动 ----------
 fitScale();
-setStatus('等待集成 CPU/PPU（M5）——ROM 加载在集成完成后可用');
+setStatus('就绪 —— 拖入 .nes 文件，或点击「打开 ROM」');
 export {};
