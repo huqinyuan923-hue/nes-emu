@@ -14,7 +14,7 @@ Web UI 调试器，并把并行开发的 CPU（6502）与 PPU（2C02）集成为
 npm install              # devDependencies（typescript / vitest / esbuild / @types/node）
 npm test                 # 全仓测试（单元测试 + blargg 测试 ROM 套件）
 npm run typecheck        # tsc --noEmit
-npm run build:web        # 打包 dist/index.html（单文件，可直接部署 GitHub Pages）
+npm run build:web        # 打包 dist/index.html（单文件；生产部署见 DEPLOY.md）
 npm run fetch:test-roms  # 下载 blargg 测试 ROM 到 tests/roms/（已 gitignore）
 ```
 
@@ -53,10 +53,18 @@ README-偏差记录.md  契约偏差记录
 2. **blargg 全家桶**：结果码协议（$6000=0x80 进行中 / 0x01 成功，$6004+
    ASCII 文本），`npm run fetch:test-roms` 后 `npm test` 自动断言。
 3. **nestest 图形模式**：出图对拍截图留档 `docs/screenshots/`。
-4. **性能**：单帧（含渲染）< 8ms 预算（60fps 余量），基准用例见 `npm test`。
+4. **性能**：`npm run bench`（独立套件；墙钟断言不作为正确性 gate）。
 
 ## 已知限制（一期）
 
 - mapper 仅 0/1/2/3（MMC3 列二期）
 - 音频 APU 未实现（UI 预留静音开关占位）
-- 其余见 REPORT.md
+- 测试 116/123：7 项 dot 级时序为已知限制（oam_stress、cpu_timing_test、
+  05/07/10、vbl_nmi_timing 7、综合），根因与量化数据见 REPORT.md §0.6/§0.7
+
+**时序簇冻结声明（2026-11-12）**：上述 7 项不再投入。剩余问题是模型粒度
+（单一全局 nmiDelay 无法同时满足 05 与 06/08）与两个未实现子系统，继续
+投入的边际收益极低，功能与可玩性不受影响。若要重启，起点是：分段 nmiDelay
+（锁存/输出解耦）+ secondary OAM 直通子系统。
+
+生产地址：https://nes.adcakeyuan.top · 部署：见 [DEPLOY.md](./DEPLOY.md)
